@@ -1,9 +1,9 @@
 import('./pkg')
   .then((m) => {
-    // let app = new m.FlockingApp();
+    let app = new m.FlockingApp();
     
     // function render() {
-    //   app.draw();
+      app.draw();
     //   window.requestAnimationFrame(render);
     // }
 
