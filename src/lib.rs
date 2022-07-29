@@ -1,7 +1,5 @@
 extern crate console_error_panic_hook;
 
-use std::vec;
-
 use rand::Rng;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -16,22 +14,12 @@ pub mod boid;
 mod vecmath;
 
 #[wasm_bindgen]
-extern "C" {
-  #[wasm_bindgen(js_namespace = console)]
-  fn log(s: &str);
-}
-
-pub static mut flock: Vec<boid::Boid> = vec![];
-
-#[wasm_bindgen]
 pub struct FlockingApp {
   canvas: web_sys::HtmlCanvasElement,
   context: CanvasRenderingContext2d,
   qtree: QuadTree<'static>,
+  flock: Vec<boid::Boid>,
 }
-
-
-
 
 #[wasm_bindgen]
 impl FlockingApp {
@@ -67,16 +55,16 @@ impl FlockingApp {
 
     let mut rand = rand::thread_rng();
     
+    let mut flock = vec![];
     for _ in 0..300 {
-      unsafe {
-        flock.push(boid::Boid::new(Point {
-          x: rand.gen_range(0..canvas.width()).into(),
-          y: rand.gen_range(0..canvas.height()).into(),
-        }))
-      }
+      flock.push(boid::Boid::new(Point {
+        x: rand.gen_range(0..canvas.width()).into(),
+        y: rand.gen_range(0..canvas.height()).into(),
+      }));
     }
 
     FlockingApp {
+      flock,
       qtree,
       canvas,
       context,
@@ -89,42 +77,36 @@ impl FlockingApp {
     self.context.fill_rect(0., 0., self.canvas.width() as f64, self.canvas.height() as f64);
     self.context.set_fill_style(&JsValue::from_str("black"));
 
-    // reset qt
     self.qtree.clear();
-
-    unsafe {    
-      for boid in &flock {
+    
+    unsafe {
+      let flock_static: &'static Vec<boid::Boid> = std::mem::transmute(&self.flock);
+      
+      for boid in flock_static {
         self.qtree.insert(quadtree::QuadItem {
           p: boid.position.clone(),
           boid_ptr: &boid,
         });
       }
-    // for (const boid of flock) {
-    //   quadTree.addItem(boid.position.x, boid.position.y, boid);
-    // }
+    }
 
     // draw points
-      for i in 0..flock.len() {
-        flock[i].check_edges(self.canvas.width().into(), self.canvas.height().into());
+    for boid in &mut self.flock {
+      boid.check_edges(self.canvas.width().into(), self.canvas.height().into());
 
-        // calculate parameters
-        let update = &mut flock[i].update(&self.qtree);
-        // log(format!("Align: {:?}, Cohesion: {:?}, Separation: {:?}", update.alignment, update.cohesion, update.separation).as_str());
-        update.alignment.scalar_mult(1.5);
-        update.separation.scalar_mult(0.01);
-        
-        // update the boid's parameters
-        let boid = &mut flock[i];
-        boid.acceleration.add(&update.alignment);
-        boid.acceleration.add(&update.cohesion);
-        boid.acceleration.add(&update.separation);
-        
+      // calculate parameters
+      let update = &mut boid.update(&self.qtree);
+      update.alignment.scalar_mult(1.5);
+      update.separation.scalar_mult(0.01);
+      
+      // update the boid's parameters
+      boid.acceleration.add(&update.alignment);
+      boid.acceleration.add(&update.cohesion);
+      boid.acceleration.add(&update.separation);
 
-        // prepare and render
-        boid.step();
-        
-        self.context.fill_rect(boid.position.x, boid.position.y, 5., 5.);
-      }
+      // prepare and render
+      boid.step();
+      self.context.fill_rect(boid.position.x, boid.position.y, 5., 5.);
     }
 
     // draw the clusters
