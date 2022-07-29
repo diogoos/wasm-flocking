@@ -1,37 +1,42 @@
 use std::vec;
 use super::geometry::*;
 
+#[derive(Clone)]
+pub struct QuadItem<'a> {
+  pub p: Point,
+  pub boid_ptr: &'a crate::boid::Boid,
+}
+
 pub enum QuadTreeResult {
   Ok, Err
 }
 
-#[derive(Debug)]
-pub struct QuadTree {
+
+pub struct QuadTree<'a> {
   pub(crate) boundry: Rect,
   capacity: u32,
 
-  points: Vec<Point>,
+  items: Vec<QuadItem<'a>>,
 
   // store recursive quadtrees on heap
-  pub(crate) northeast: Option<Box<QuadTree>>,
-  pub(crate) northwest: Option<Box<QuadTree>>,
-  pub(crate) southwest: Option<Box<QuadTree>>,
-  pub(crate) southeast: Option<Box<QuadTree>>,
+  pub(crate) northeast: Option<Box<QuadTree<'a>>>,
+  pub(crate) northwest: Option<Box<QuadTree<'a>>>,
+  pub(crate) southwest: Option<Box<QuadTree<'a>>>,
+  pub(crate) southeast: Option<Box<QuadTree<'a>>>,
 }
 
-impl QuadTree {
+impl<'a> QuadTree<'a> {
   pub fn new(boundry: Rect, capacity: u32) -> Self {
-    QuadTree { boundry, capacity, points: vec![],
-      northeast: None, northwest: None, southwest: None, southeast: None }
+    QuadTree { boundry, capacity, items: vec![], northeast: None, northwest: None, southwest: None, southeast: None }
   }
 
-  pub fn insert(&mut self, point: Point) -> QuadTreeResult {
+  pub fn insert(&mut self, point: QuadItem<'a>) -> QuadTreeResult {
     // don't insert point if not within boundry (important for recursion)
-    if !self.boundry.contains(&point) { return QuadTreeResult::Err }
+    if !self.boundry.contains(&point.p) { return QuadTreeResult::Err }
 
     // if within capacity, just insert here
-    if self.points.len() < (self.capacity as usize) {
-      self.points.push(point);
+    if self.items.len() < (self.capacity as usize) {
+      self.items.push(point);
       return QuadTreeResult::Ok;
     }
 
@@ -41,11 +46,11 @@ impl QuadTree {
     }
 
     // move point to children
-    if self.northeast.as_ref().unwrap().boundry.contains(&point) {
+    if self.northeast.as_ref().unwrap().boundry.contains(&point.p) {
       return self.northeast.as_mut().unwrap().insert(point);
-    } else if self.northwest.as_ref().unwrap().boundry.contains(&point) {
+    } else if self.northwest.as_ref().unwrap().boundry.contains(&point.p) {
       return self.northwest.as_mut().unwrap().insert(point);
-    } else if self.southwest.as_ref().unwrap().boundry.contains(&point) {
+    } else if self.southwest.as_ref().unwrap().boundry.contains(&point.p) {
       return self.southwest.as_mut().unwrap().insert(point);
     } else {
       return self.southeast.as_mut().unwrap().insert(point);
@@ -53,22 +58,30 @@ impl QuadTree {
   }
 
 
-  pub fn query(&self, range: &Rect) -> Vec<Point> {
+  pub fn query(&self, range: &Rect) -> Vec<QuadItem> {
     let mut found = vec![];
     self._query(range, &mut found);
     found
   }
 
-  fn _query(&self, range: &Rect, found: &mut Vec<Point>) {
+  pub fn clear(&mut self) {
+    self.items = vec![];
+    self.northeast = None;
+    self.northwest = None;
+    self.southeast = None;
+    self.southwest = None;
+  }
+
+  fn _query(&self, range: &Rect, found: &mut Vec<QuadItem<'a>>) {
     if !range.intersects(&self.boundry) { return }
 
     if self.boundry.is_inside(range) {
       // if quad is completely inside range, add add everything
-      found.append(&mut self.points.clone());
+      found.append(&mut self.items.clone());
     } else {
       // otherwise, check point-by-point
-      for p in &self.points {
-        if range.contains(p) {
+      for p in &self.items {
+        if range.contains(&p.p) {
           found.push(p.clone());
         }
       }
@@ -82,14 +95,14 @@ impl QuadTree {
     }
   }
 
-  pub fn all(&self) -> Vec<Point> {
+  pub fn all(&self) -> Vec<QuadItem<'a>> {
     let mut found = vec![];
     self._all(&mut found);
     found
   }
 
-  fn _all(&self, found: &mut Vec<Point>) {
-    found.append(&mut self.points.clone());
+  fn _all(&self, found: &mut Vec<QuadItem<'a>>) {
+    found.append(&mut self.items.clone());
 
     if let Some(_) = self.northeast {
       self.northeast.as_ref().unwrap()._all(found);

@@ -2,11 +2,11 @@ import('./pkg')
   .then((m) => {
     let app = new m.FlockingApp();
     
-    // function render() {
+    function render() {
       app.draw();
-    //   window.requestAnimationFrame(render);
-    // }
+      window.requestAnimationFrame(render);
+    }
 
-    // render();
+    render();
   })
   .catch(console.error);

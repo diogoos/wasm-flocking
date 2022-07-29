@@ -1,10 +1,19 @@
 #[derive(Clone, Debug)]
 pub struct Point {
-  pub x: u32,
-  pub y: u32,
+  pub x: f64,
+  pub y: f64,
 }
 
-#[derive(Debug)]
+impl Point {
+  pub fn sqr_dist(&self, to: &Point) -> f64 {
+    let x_diff: f64 = f64::from(self.x) - f64::from(to.x);
+    let y_diff: f64 = f64::from(self.y) - f64::from(to.y);
+
+    x_diff.powi(2) + y_diff.powi(2)
+  }
+}
+
+#[derive(Debug, Clone)]
 pub struct Rect {
   pub(crate) bottom_left: Point,
   pub(crate) top_right: Point
@@ -17,10 +26,10 @@ impl Rect {
     }
   }
 
-  pub fn new_with_center(center: Point, width: u32, height: u32) -> Self {
+  pub fn new_with_center(center: Point, width: f64, height: f64) -> Self {
     Self {
-      bottom_left: Point { x: center.x - (width/2), y: center.y - (height/2) },
-      top_right: Point { x: center.x + (width/2), y: center.y + (height/2) },
+      bottom_left: Point { x: center.x - (width/2.), y: center.y - (height/2.) },
+      top_right: Point { x: center.x + (width/2.), y: center.y + (height/2.) },
     }
   }
 
@@ -36,8 +45,8 @@ impl Rect {
 
   // NE, NW, SW, SE
   pub fn quadrants(&self) -> (Rect, Rect, Rect, Rect) {
-    let center_x = (self.bottom_left.x + self.top_right.x) / 2;
-    let center_y = (self.bottom_left.y + self.top_right.y) / 2;
+    let center_x = (self.bottom_left.x + self.top_right.x) / 2.;
+    let center_y = (self.bottom_left.y + self.top_right.y) / 2.;
 
     (
       Rect::new(Point {x: center_x, y: center_y},self.top_right.clone()),
