@@ -38,50 +38,43 @@ impl Boid {
       cohesion: Vec2D { x: 0., y: 0. },
     };
     let mut total = 0;
-    let mut ctotal = 0;
+
+    let shift = ((PERCEPTION_RADIUS * PERCEPTION_RADIUS) / 2.).sqrt();
 
     // for other in flock {
     for other in qtree.query(
       &crate::geometry::Rect::new(
         crate::geometry::Point {
-          x: self.position.x - 100.,
-          y: self.position.y - 100.,
+          x: self.position.x - shift,
+          y: self.position.y - shift,
         },
         crate::geometry::Point {
-          x: self.position.x + 100.,
-          y: self.position.y + 100.
+          x: self.position.x + shift,
+          y: self.position.y + shift,
         }
       )) {
       if other.position.x == self.position.x && other.position.y == self.position.y {
         continue; // skip self
       }
 
+      // calculate alignment
+      update.alignment.add(&other.velocity);
+
+      // calculate separation
+      let mut diff = Vec2D {
+        x: self.position.x - other.position.x,
+        y: self.position.y - other.position.y,
+      };
       let sqr_dst = self.position.sqr_dist(&other.position);
-      if sqr_dst < (PERCEPTION_RADIUS * PERCEPTION_RADIUS) {
-        // calculate alignment
-        update.alignment.add(&other.velocity);
+      diff.scalar_div(sqr_dst);
 
-        // calculate separation
-        let mut diff = Vec2D {
-          x: self.position.x - other.position.x,
-          y: self.position.y - other.position.y,
-        };
-        // diff.scalar_div(10.);
-        
-        diff.scalar_div(sqr_dst);
-        // super::log(format!("diff: {:?}", diff).as_str());
+      update.separation.add(&diff);
 
-        update.separation.add(&diff);
+      // calculate cohesion
+      let position = (&other.position).into();
+      update.cohesion.add(&position);
 
-        // calculate cohesion
-        if sqr_dst < (50. * 50.) {
-          let position = (&other.position).into();
-          update.cohesion.add(&position);
-          ctotal += 1;
-        }
-
-        total += 1;
-      }
+      total += 1;
     }
 
     if total > 0 {
@@ -95,7 +88,7 @@ impl Boid {
       update.separation.sub(&self.velocity);
       // update.separation.limit_mag(self.max_force);
 
-      update.cohesion.scalar_div(f64::from(ctotal));
+      update.cohesion.scalar_div(f64::from(total));
       // update.cohesion.set_mag(self.max_speed);
       update.cohesion.sub(&self.velocity);
       update.cohesion.limit_mag(self.max_force);

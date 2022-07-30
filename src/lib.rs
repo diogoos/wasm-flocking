@@ -56,7 +56,7 @@ impl FlockingApp {
     let mut rand = rand::thread_rng();
     
     let mut flock = vec![];
-    for _ in 0..300 {
+    for _ in 0..800 {
       flock.push(boid::Boid::new(Point {
         x: rand.gen_range(0..canvas.width()).into(),
         y: rand.gen_range(0..canvas.height()).into(),
