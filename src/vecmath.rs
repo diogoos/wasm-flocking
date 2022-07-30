@@ -57,6 +57,10 @@ impl Vec2D {
       y: len * r.sin()
     }
   }
+
+  pub fn normalize(&mut self) {
+    self.scalar_div(self.mag())
+  }
 }
 
 // conversion from point

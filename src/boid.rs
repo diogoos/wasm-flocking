@@ -61,13 +61,14 @@ impl Boid {
       update.alignment.add(&other.velocity);
 
       // calculate separation
+      let sqr_dst = self.position.sqr_dist(&other.position);
       let mut diff = Vec2D {
         x: self.position.x - other.position.x,
         y: self.position.y - other.position.y,
       };
-      let sqr_dst = self.position.sqr_dist(&other.position);
+      diff.normalize();
       diff.scalar_div(sqr_dst);
-
+      // diff.scalar_div(sqr_dst);
       update.separation.add(&diff);
 
       // calculate cohesion

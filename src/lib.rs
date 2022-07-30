@@ -93,7 +93,7 @@ impl FlockingApp {
       // calculate parameters
       let update = &mut boid.update(&self.qtree);
       update.alignment.scalar_mult(1.5);
-      update.separation.scalar_mult(0.01);
+      update.separation.scalar_mult(0.05);
       
       // update the boid's parameters
       boid.acceleration.add(&update.alignment);
