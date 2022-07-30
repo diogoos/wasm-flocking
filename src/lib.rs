@@ -15,6 +15,9 @@ mod vecmath;
 
 #[wasm_bindgen]
 pub struct FlockingApp {
+  pub show_qtree_grid: bool,
+  pub show_boid_headings: bool,
+
   canvas: web_sys::HtmlCanvasElement,
   context: CanvasRenderingContext2d,
   qtree: QuadTree<'static>,
@@ -64,6 +67,9 @@ impl FlockingApp {
     }
 
     FlockingApp {
+      show_qtree_grid: false,
+      show_boid_headings: true,
+
       flock,
       qtree,
       canvas,
@@ -102,22 +108,28 @@ impl FlockingApp {
 
       // prepare and render
       boid.step();
-      let heading = f64::atan2(boid.velocity.y, boid.velocity.x);
-      self.context.translate(boid.position.x, boid.position.y).unwrap();
-      self.context.rotate(heading).unwrap();
-      self.context.translate(-boid.position.x, -boid.position.y).unwrap();
-      self.context.begin_path();
-      self.context.move_to(boid.position.x, boid.position.y);
-      self.context.line_to(boid.position.x - 15., boid.position.y + 5.);
-      self.context.line_to(boid.position.x - 15., boid.position.y - 5.);
-      self.context.line_to(boid.position.x, boid.position.y);
-      self.context.fill();
-      self.context.set_transform(1., 0., 0., 1., 0., 0.).unwrap();
-      // self.context.fill_rect(boid.position.x, boid.position.y, 5., 5.);
+
+      if self.show_boid_headings {
+        let heading = f64::atan2(boid.velocity.y, boid.velocity.x);
+        self.context.translate(boid.position.x, boid.position.y).unwrap();
+        self.context.rotate(heading).unwrap();
+        self.context.translate(-boid.position.x, -boid.position.y).unwrap();
+        self.context.begin_path();
+        self.context.move_to(boid.position.x, boid.position.y);
+        self.context.line_to(boid.position.x - 15., boid.position.y + 5.);
+        self.context.line_to(boid.position.x - 15., boid.position.y - 5.);
+        self.context.line_to(boid.position.x, boid.position.y);
+        self.context.fill();
+        self.context.set_transform(1., 0., 0., 1., 0., 0.).unwrap();
+      } else {
+        self.context.fill_rect(boid.position.x, boid.position.y, 5., 5.);
+      }
     }
 
     // draw the clusters
-    // self.qtree.draw(&self.context);
+    if self.show_qtree_grid {
+      self.qtree.draw(&self.context);
+    }
   }
 }
 
@@ -145,7 +157,8 @@ impl<'a> QuadTree<'a> {
 
 impl Rect {
   fn draw(&self, canvas: &CanvasRenderingContext2d) {
-    canvas.stroke_rect(self.bottom_left.x as f64, (1080. - self.top_right.y) as f64,
+    let canvas_height: f64 = canvas.canvas().unwrap().height().into();
+    canvas.stroke_rect(self.bottom_left.x as f64, (canvas_height - self.top_right.y) as f64,
     (self.top_right.x - self.bottom_left.x).into(), (self.top_right.y - self.bottom_left.y).into());
   }
 }
