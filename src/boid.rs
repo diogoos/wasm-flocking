@@ -52,12 +52,9 @@ impl Boid {
           y: self.position.y + 100.
         }
       )) {
-      if other.p.x == self.position.x && other.p.y == self.position.y {
+      if other.position.x == self.position.x && other.position.y == self.position.y {
         continue; // skip self
       }
-
-      // shadow other
-      let other = other.boid_ptr;
 
       let sqr_dst = self.position.sqr_dist(&other.position);
       if sqr_dst < (PERCEPTION_RADIUS * PERCEPTION_RADIUS) {

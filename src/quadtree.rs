@@ -1,22 +1,16 @@
 use std::vec;
 use super::geometry::*;
-
-#[derive(Clone)]
-pub struct QuadItem<'a> {
-  pub p: Point,
-  pub boid_ptr: &'a crate::boid::Boid,
-}
+use super::boid::*;
 
 pub enum QuadTreeResult {
   Ok, Err
 }
 
-
 pub struct QuadTree<'a> {
   pub(crate) boundry: Rect,
   capacity: u32,
 
-  items: Vec<QuadItem<'a>>,
+  boids: Vec<&'a Boid>,
 
   // store recursive quadtrees on heap
   pub(crate) northeast: Option<Box<QuadTree<'a>>>,
@@ -27,16 +21,16 @@ pub struct QuadTree<'a> {
 
 impl<'a> QuadTree<'a> {
   pub fn new(boundry: Rect, capacity: u32) -> Self {
-    QuadTree { boundry, capacity, items: vec![], northeast: None, northwest: None, southwest: None, southeast: None }
+    QuadTree { boundry, capacity, boids: vec![], northeast: None, northwest: None, southwest: None, southeast: None }
   }
 
-  pub fn insert(&mut self, point: QuadItem<'a>) -> QuadTreeResult {
+  pub fn insert(&mut self, boid: &'a Boid) -> QuadTreeResult {
     // don't insert point if not within boundry (important for recursion)
-    if !self.boundry.contains(&point.p) { return QuadTreeResult::Err }
+    if !self.boundry.contains(&boid.position) { return QuadTreeResult::Err }
 
     // if within capacity, just insert here
-    if self.items.len() < (self.capacity as usize) {
-      self.items.push(point);
+    if self.boids.len() < (self.capacity as usize) {
+      self.boids.push(boid);
       return QuadTreeResult::Ok;
     }
 
@@ -46,42 +40,42 @@ impl<'a> QuadTree<'a> {
     }
 
     // move point to children
-    if self.northeast.as_ref().unwrap().boundry.contains(&point.p) {
-      return self.northeast.as_mut().unwrap().insert(point);
-    } else if self.northwest.as_ref().unwrap().boundry.contains(&point.p) {
-      return self.northwest.as_mut().unwrap().insert(point);
-    } else if self.southwest.as_ref().unwrap().boundry.contains(&point.p) {
-      return self.southwest.as_mut().unwrap().insert(point);
+    if self.northeast.as_ref().unwrap().boundry.contains(&boid.position) {
+      return self.northeast.as_mut().unwrap().insert(boid);
+    } else if self.northwest.as_ref().unwrap().boundry.contains(&boid.position) {
+      return self.northwest.as_mut().unwrap().insert(boid);
+    } else if self.southwest.as_ref().unwrap().boundry.contains(&boid.position) {
+      return self.southwest.as_mut().unwrap().insert(boid);
     } else {
-      return self.southeast.as_mut().unwrap().insert(point);
+      return self.southeast.as_mut().unwrap().insert(boid);
     }
   }
 
 
-  pub fn query(&self, range: &Rect) -> Vec<QuadItem> {
+  pub fn query(&self, range: &Rect) -> Vec<&Boid> {
     let mut found = vec![];
     self._query(range, &mut found);
     found
   }
 
   pub fn clear(&mut self) {
-    self.items = vec![];
+    self.boids = vec![];
     self.northeast = None;
     self.northwest = None;
     self.southeast = None;
     self.southwest = None;
   }
 
-  fn _query(&self, range: &Rect, found: &mut Vec<QuadItem<'a>>) {
+  fn _query(&self, range: &Rect, found: &mut Vec<&'a Boid>) {
     if !range.intersects(&self.boundry) { return }
 
     if self.boundry.is_inside(range) {
       // if quad is completely inside range, add add everything
-      found.append(&mut self.items.clone());
+      found.append(&mut self.boids.clone());
     } else {
       // otherwise, check point-by-point
-      for p in &self.items {
-        if range.contains(&p.p) {
+      for p in &self.boids {
+        if range.contains(&p.position) {
           found.push(p.clone());
         }
       }
@@ -92,23 +86,6 @@ impl<'a> QuadTree<'a> {
       self.northwest.as_ref().unwrap()._query(range, found);
       self.southwest.as_ref().unwrap()._query(range, found);
       self.southeast.as_ref().unwrap()._query(range, found);
-    }
-  }
-
-  pub fn all(&self) -> Vec<QuadItem<'a>> {
-    let mut found = vec![];
-    self._all(&mut found);
-    found
-  }
-
-  fn _all(&self, found: &mut Vec<QuadItem<'a>>) {
-    found.append(&mut self.items.clone());
-
-    if let Some(_) = self.northeast {
-      self.northeast.as_ref().unwrap()._all(found);
-      self.northwest.as_ref().unwrap()._all(found);
-      self.southwest.as_ref().unwrap()._all(found);
-      self.southeast.as_ref().unwrap()._all(found);
     }
   }
 

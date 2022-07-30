@@ -78,15 +78,11 @@ impl FlockingApp {
     self.context.set_fill_style(&JsValue::from_str("black"));
 
     self.qtree.clear();
-    
+
     unsafe {
-      let flock_static: &'static Vec<boid::Boid> = std::mem::transmute(&self.flock);
-      
-      for boid in flock_static {
-        self.qtree.insert(quadtree::QuadItem {
-          p: boid.position.clone(),
-          boid_ptr: &boid,
-        });
+      for i in 0..self.flock.len() {
+          let boid: &'static boid::Boid = std::mem::transmute(&self.flock[i]);
+          self.qtree.insert(boid);
       }
     }
 
