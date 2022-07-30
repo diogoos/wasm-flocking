@@ -8,7 +8,7 @@ const PERCEPTION_RADIUS: f64 = 25.;
 
 pub struct Boid {
   pub position: Point,
-  velocity: Vec2D,
+  pub velocity: Vec2D,
   pub acceleration: Vec2D,
   max_force: f64,
   max_speed: f64,
